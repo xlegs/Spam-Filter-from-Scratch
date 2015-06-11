@@ -82,7 +82,7 @@ val dataLabels = data_rdd.map { case (file, text) =>
 
 //get tf-idf of whole set
 val rdd = data_rdd
-val dim=math.pow(2,19).toInt
+//val dim=math.pow(2,19).toInt // dim is set above
 val hashingTF = new HashingTF(dim)
 val rdd_tf = rdd.map { case (file,text) =>
   hashingTF.transform(tokenize(text)) }
