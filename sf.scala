@@ -60,12 +60,38 @@ val train = zipped.map {case (label, vector) =>
 train.cache
 
 // train it
-val model = NaiveBayes.train(train, lambda=0.1)
+val model = NaiveBayes.train(train, lambda=1.0)
 
 // run it on the training data to test
 val prediction = train.map(p => (model.predict(p.features), p.label))
-val accuracy = 1.0 * prediction.filter(x=>x._1 == x._2).count() / train.count()
-print(accuracy)
+val n_ham_correct = prediction.filter(x=>(x._1 == x._2)&&(x._2==0)).count()
+val n_spam_correct = prediction.filter(x=>(x._1 == x._2)&&(x._2==1)).count()
+val n_ham = prediction.filter(x=>x._2==0).count()
+val n_spam = prediction.filter(x=>x._2==1).count()
+val n_ham_wrong = prediction.filter(x=>(x._1 != x._2)&&(x._2==0)).count()
+val n_spam_wrong = prediction.filter(x=>(x._1 != x._2)&&(x._2==1)).count()
+print(n_ham_correct, n_ham, n_ham_wrong)
+print(n_spam_correct, n_spam, n_spam_wrong)
 
-//todo: get tf-idf of whole set, run naive bayes on whole set
-//val data_rdd=sc.wholeTextFiles(path)
+
+//process the whole data
+val data_rdd = sc.wholeTextFiles(datapath)
+val dataLabels = data_rdd.map { case (file, text) =>
+  file.split("/").takeRight(2).head
+}
+
+//get tf-idf of whole set
+val rdd = data_rdd
+val dim=math.pow(2,19).toInt
+val hashingTF = new HashingTF(dim)
+val rdd_tf = rdd.map { case (file,text) =>
+  hashingTF.transform(tokenize(text)) }
+val idf = new IDF().fit(rdd_tf)
+val rdd_tfidf = idf.transform(rdd_tf)
+val data_tfidf = rdd_tfidf
+
+val prediction = data_tfidf.map(p=>(model.predict(p)))
+val n_ham = prediction.filter(x=>(x==0)).count()
+val n_spam = prediction.filter(x=>(x==1)).count()
+print(n_ham, n_spam)
+
